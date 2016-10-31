@@ -50,7 +50,7 @@ type RunResponse struct {
 	// Whether the data for this run is ready to download. If the status is complete, this will always be truthy. 
 	// If the status is cancelled or error, then this may be truthy or falsy, depending on whether any 
 	// data is available.
-	DataReady     bool `json:"data_ready"`
+	DataReady     uint8 `json:"data_ready"`
 
 	// The time that this run was started at, in UTC +0000.
 	StartTime     string `json:"start_time"`
@@ -60,7 +60,7 @@ type RunResponse struct {
 	EndTime       string `json:"end_time"`
 
 	// The number of pages that have been traversed by this run so far.
-	Pages         string `json:"pages"`
+	Pages         interface{} `json:"pages"`
 
 	// The md5sum of the results. This can be used to check if any results data has changed between two runs.
 	Md5sum        string `json:"md5sum"`

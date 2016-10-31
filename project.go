@@ -5,7 +5,13 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"parsehub-go/internal"
 )
+
+// Run handler
+type RunHandler interface {
+	Handle(run *Run) error
+}
 
 // Project run params
 type ProjectRunParams struct {
@@ -20,19 +26,12 @@ type Project struct {
 	parsehub *ParseHub
 
 	token    string
-	data     *ProjectResponse
-}
-
-// Creates new project
-func NewProject(projectToken string) *Project {
-	return &Project{
-		token: projectToken,
-	}
+	response *ProjectResponse
 }
 
 // Get project data
-func (p *Project) GetData() *ProjectResponse {
-	return p.data
+func (p *Project) GetResponse() *ProjectResponse {
+	return p.response
 }
 
 // This will start running an instance of the project on the ParseHub cloud. It will create a new run object. 
@@ -55,7 +54,9 @@ func (p *Project) GetData() *ProjectResponse {
 // send_email (Optional)	
 // If set to anything other than 0, send an email when the run either completes successfully or 
 // fails due to an error. Defaults to 0.
-func (p *Project) Run(params ProjectRunParams) *Run {
+func (p *Project) Run(params ProjectRunParams, runHandler RunHandler) *Run {
+	internal.Logf("Project: Run project %s with params: %+v", p.token, params)
+
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects/" + p.token + "/run")
 
 	values := url.Values{}
@@ -89,13 +90,45 @@ func (p *Project) Run(params ProjectRunParams) *Run {
 
 		body, _ := ioutil.ReadAll(resp.Body)
 		runResponse := &RunResponse{}
-		json.Unmarshal(body, runResponse)
+		err := json.Unmarshal(body, runResponse)
+
+		if err != nil {
+			panic(err)
+		}
 
 		run := &Run{}
+		run.token = runResponse.RunToken
 		run.parsehub = p.parsehub
-		run.data = runResponse
+		run.response = runResponse
+
+		run.handler = runHandler
+
+		p.parsehub.runRegistry[run.token] = run
+
+		internal.Logf("Project: Start watching run %s", run.token)
+		go run.Watch()
 
 		return run
+	}
+}
+
+// This returns the data for the most recent ready run for a project. 
+// You can use this method in order to have a synchronous interface to your project.
+func (p *Project) LoadLastReadyData(target interface{}) {
+	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects/" + p.token + "/last_ready_run/data")
+
+	values := url.Values{}
+	values.Add("api_key", p.parsehub.apiKey)
+
+	requestUrl.RawQuery = values.Encode()
+
+	if resp, err := http.Get(requestUrl.String()); err != nil {
+		panic(err)
+	} else {
+		defer resp.Body.Close()
+
+		body, _ := ioutil.ReadAll(resp.Body)
+		json.Unmarshal(body, target)
 	}
 }
 
