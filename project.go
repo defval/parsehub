@@ -8,11 +8,6 @@ import (
 	"parsehub-go/internal"
 )
 
-// Run handler
-type RunHandler interface {
-	Handle(run *Run) error
-}
-
 // Project run params
 type ProjectRunParams struct {
 	StartUrl           string
@@ -62,8 +57,12 @@ func (p *Project) GetResponse() *ProjectResponse {
 // send_email (Optional)	
 // If set to anything other than 0, send an email when the run either completes successfully or 
 // fails due to an error. Defaults to 0.
-func (p *Project) Run(params ProjectRunParams, runHandler RunHandler) *Run {
-	internal.Logf("Project: Run project %s with params: %+v", p.token, params)
+func (p *Project) Run(params ProjectRunParams, handleFunc HandleRunFunc) (*Run, error) {
+	debugf(
+		"Project.Run: Run project %s with params: %+v",
+		p.token,
+		params,
+	)
 
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects/" + p.token + "/run")
 
@@ -80,11 +79,10 @@ func (p *Project) Run(params ProjectRunParams, runHandler RunHandler) *Run {
 
 	if len(params.StartValueOverride) != 0 {
 		if bytes, err := json.Marshal(params.StartValueOverride); err != nil {
-			panic(err)
+			fatalf("Project.Run: Incorrect StartValueOverride")
 		} else {
 			values.Add("start_value_override", string(bytes))
 		}
-
 	}
 
 	if params.SendEmail {
@@ -92,16 +90,16 @@ func (p *Project) Run(params ProjectRunParams, runHandler RunHandler) *Run {
 	}
 
 	if resp, err := http.PostForm(requestUrl.String(), values); err != nil {
-		panic(err)
-	} else {
+		warningf("Project.Run: ParseHub HTTP request problem: %s", err.Error())
+		return nil, err
+	} else if success, err := internal.CheckHTTPStatusCode(resp.StatusCode); success {
 		defer resp.Body.Close()
 
 		body, _ := ioutil.ReadAll(resp.Body)
 		runResponse := &RunResponse{}
-		err := json.Unmarshal(body, runResponse)
-
-		if err != nil {
-			panic(err)
+		if err := json.Unmarshal(body, runResponse); err != nil {
+			warningf("Project.Run: Unmarshal error with body %s", body)
+			return nil, err
 		}
 
 		internal.Lock.RLock()
@@ -117,22 +115,26 @@ func (p *Project) Run(params ProjectRunParams, runHandler RunHandler) *Run {
 
 		run.response = runResponse
 
-		run.SetHandler(runHandler)
+		run.SetHandler(handleFunc)
 
 		internal.Lock.Lock()
 		p.parsehub.runRegistry[run.token] = run
 		internal.Lock.Unlock()
 
-		internal.Logf("Project: Start WatchAndHandle for run with token %s", run.token)
+		debugf("Project.Run: Start WatchAndHandle for run with token %s", run.token)
 		go run.WatchAndHandle()
 
-		return run
+		return run, nil
+	} else {
+		warningf("Project.Run: ParseHub HTTP response problem: %s", err.Error())
+		return nil, err
 	}
 }
 
 // This returns the data for the most recent ready run for a project. 
 // You can use this method in order to have a synchronous interface to your project.
-func (p *Project) LoadLastReadyData(target interface{}) {
+func (p *Project) LoadLastReadyData(target interface{}) error {
+	debugf("Project.LoadLastReadyData: Load: %s", p.token)
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects/" + p.token + "/last_ready_run/data")
 
 	values := url.Values{}
@@ -141,12 +143,20 @@ func (p *Project) LoadLastReadyData(target interface{}) {
 	requestUrl.RawQuery = values.Encode()
 
 	if resp, err := http.Get(requestUrl.String()); err != nil {
-		panic(err)
-	} else {
+		warningf("Project.LoadLastReadyData: ParseHub HTTP request problem: %s", err.Error())
+		return err
+	} else if success, err := internal.CheckHTTPStatusCode(resp.StatusCode); success {
 		defer resp.Body.Close()
 
 		body, _ := ioutil.ReadAll(resp.Body)
-		json.Unmarshal(body, target)
+		if err := json.Unmarshal(body, target); err != nil {
+			warningf("Project.LoadLastReadyData: Unmarshal error with body %s", body)
+			return err
+		}
+		return nil
+	} else {
+		warningf("Project.LoadLastReadyData: ParseHub HTTP response problem: %s", err.Error())
+		return err
 	}
 }
 

@@ -28,11 +28,11 @@ type ProjectResponse struct {
 	OptionsJSON   string `json:"option_json"`
 
 	// The run object of the most recently started run (orderd by start_time) for the project.
-	LastRun       string `json:"last_run"`
+	LastRun       *RunResponse `json:"last_run"`
 
 	// The run object of the most recent ready run (ordered by start_time) for the project. A ready run is one 
 	// whose data_ready attribute is truthy. The last_run and last_ready_run for a project may be the same.
-	LastReadyRun  string `json:"last_ready_run"`
+	LastReadyRun  *RunResponse `json:"last_ready_run"`
 }
 
 

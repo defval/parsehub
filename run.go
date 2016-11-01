@@ -9,15 +9,17 @@ import (
 	"time"
 )
 
+type HandleRunFunc func(run *Run) error
+
 // ParseHub Run Wrapper
 type Run struct {
-	parsehub *ParseHub
+	parsehub   *ParseHub
 
-	token    string
-	response *RunResponse
-	handler  RunHandler
+	token      string
+	response   *RunResponse
+	handleFunc HandleRunFunc
 
-	watching bool
+	watching   bool
 }
 
 // Creates new ParseHub run wrapper
@@ -29,8 +31,8 @@ func NewRun(parsehub *ParseHub, token string) *Run {
 }
 
 // Set run handler
-func (r *Run) SetHandler(handler RunHandler) {
-	r.handler = handler
+func (r *Run) SetHandler(handleFunc HandleRunFunc) {
+	r.handleFunc = handleFunc
 }
 
 // Get run data
@@ -40,7 +42,7 @@ func (r *Run) GetResponse() *RunResponse {
 
 // This load the data that was extracted by a run.
 func (r *Run) LoadData(target interface{}) error {
-	internal.Logf("Run.LoadData: Load data for run %v", r.token)
+	debugf("Run.LoadData: Load data for run %v", r.token)
 
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token + "/data")
 
@@ -50,24 +52,31 @@ func (r *Run) LoadData(target interface{}) error {
 	requestUrl.RawQuery = values.Encode()
 
 	if resp, err := http.Get(requestUrl.String()); err != nil {
+		warningf("Run.LoadData: ParseHub HTTP request problem: %s", err.Error())
 		return err
-	} else {
+	} else if success, err := internal.CheckHTTPStatusCode(resp.StatusCode); success {
 		defer resp.Body.Close()
 
 		body, _ := ioutil.ReadAll(resp.Body)
-		internal.Logf("Run.LoadData: Body string: %s", body)
+		debugf("Run.LoadData: Body string: %s", body)
 
-		json.Unmarshal(body, target)
-		internal.Logf("Run.LoadData: Target: %+v", target)
+		if err := json.Unmarshal(body, target); err != nil {
+			warningf("Run.LoadData: Unmarshal error with body %s", body)
+			return err
+		}
 
-		return nil
+		debugf("Run.LoadData: Target: %+v", target)
+		return err
+	} else {
+		warningf("Run.LoadData: ParseHub HTTP response problem: %s", err.Error())
+		return err
 	}
 }
 
 // This cancels a run and changes its status to cancelled. 
 // Any data that was extracted so far will be available.
-func (r *Run) Cancel() *Run {
-	internal.Logf("Run.Cancel: Cancel run %v", r.token)
+func (r *Run) Cancel() error {
+	debugf("Run.Cancel: Cancel run %v", r.token)
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token + "/cancel")
 
 	values := url.Values{}
@@ -75,32 +84,41 @@ func (r *Run) Cancel() *Run {
 	requestUrl.RawQuery = values.Encode()
 
 	if resp, err := http.PostForm(requestUrl.String(), values); err != nil {
-		panic(err)
-	} else {
+		warningf("Run.Cancel: ParseHub HTTP request problem: %s", err.Error())
+		return err
+	} else if success, err := internal.CheckHTTPStatusCode(resp.StatusCode); success {
 		defer resp.Body.Close()
 
 		body, _ := ioutil.ReadAll(resp.Body)
-		internal.Logf("Run.Cancel: Cancel run response string: %s", body)
+		debugf("Run.Cancel: Cancel run response string: %s", body)
 
 		runResponse := &RunResponse{}
-		json.Unmarshal(body, runResponse)
+		if err := json.Unmarshal(body, runResponse); err != nil {
+			warningf("Run.Cancel: Unmarshal error with body %s", body)
+			return err
+		}
 
-		internal.Logf("Run.Cancel: Cancel run response: %+v", runResponse)
+		debugf("Run.Cancel: Cancel run response: %+v", runResponse)
 
 		r.response = runResponse // update response
 
-		return r
+		return nil
+	} else {
+		warningf("Run.Cancel: ParseHub HTTP response problem: %s", err.Error())
+		return err
 	}
+
 }
 
 // Refresh run data
-func (r *Run) Refresh() {
-	r.parsehub.GetRun(r.token)
+func (r *Run) Refresh() error {
+	_, err := r.parsehub.GetRun(r.token)
+	return err
 }
 
 // This cancels a run if running, and deletes the run and its data.
-func (r *Run) Delete() {
-	internal.Logf("Run.Delete: Delete run %v", r.token)
+func (r *Run) Delete() error {
+	debugf("Run.Delete: Delete run %v", r.token)
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token)
 
 	values := url.Values{}
@@ -110,23 +128,31 @@ func (r *Run) Delete() {
 	request, _ := http.NewRequest(http.MethodDelete, requestUrl.String(), nil)
 
 	if resp, err := http.DefaultClient.Do(request); err != nil {
-		panic(err)
-	} else {
+		warningf("Run.Delete: ParseHub HTTP request problem: %s", err.Error())
+		return err
+	} else if success, err := internal.CheckHTTPStatusCode(resp.StatusCode); success {
 		defer resp.Body.Close()
 
 		body, _ := ioutil.ReadAll(resp.Body)
-		internal.Logf("Run.Delete: Delete run response string: %s", body)
+		debugf("Run.Delete: Delete run response string: %s", body)
 
 		runResponse := &RunResponse{}
 
-		json.Unmarshal(body, runResponse)
-		internal.Logf("Run.Delete: Delete run response: %v", runResponse)
+		if err := json.Unmarshal(body, runResponse); err != nil {
+			warningf("Run.Delete: Unmarshal error with body %s", body)
+			return err
+		}
+		debugf("Run.Delete: Delete run response: %v", runResponse)
 
 		r.response = runResponse
 
 		internal.Lock.Lock()
 		delete(r.parsehub.runRegistry, r.token)
 		internal.Lock.Unlock()
+		return nil
+	} else {
+		warningf("Run.Delete: ParseHub HTTP response problem: %s", err.Error())
+		return err
 	}
 }
 
@@ -135,26 +161,27 @@ func (r *Run) Delete() {
 func (r *Run) WatchAndHandle() {
 	// No double watches
 	if r.watching {
-		internal.Logf("Run.WatchAndHandle: Watching double run with token %s", r.token)
+		warningf("Run.WatchAndHandle: Watching double run with token %s", r.token) // its not a problem
 		return
 	}
 
-	internal.Logf("Run.WatchAndHandle: Start watching run with token %s", r.token)
+	debugf("Run.WatchAndHandle: Start watching run with token %s", r.token)
 	r.watching = true
 
 	for {
 		time.Sleep(10 * time.Second) // todo: delete hardcoded time
 
-		internal.Logf("Run.WatchAndHandle: Watch iteration run with token %s", r.token)
+		debugf("Run.WatchAndHandle: Watch iteration run with token %s", r.token)
 		r.parsehub.GetRun(r.token)
 
 		// todo: add conditions for stop watching
 		if r.response.EndTime != "" {
 			r.watching = false
 
-			internal.Logf("Run.WatchAndHandle: Watch finished. Handle run with token %s", r.token)
-			if err := r.handler.Handle(r); err != nil {
-				internal.Logf("Run.WatchAndHandle: Handle run with token %s error: %s", r.token, err.Error())
+			debugf("Run.WatchAndHandle: Watch finished. Handle run with token %s", r.token)
+			if err := r.handleFunc(r); err != nil {
+				warningf("Run.WatchAndHandle: Handle run with token %s error: %s", r.token, err.Error())
+				return
 			} else {
 				internal.Lock.Lock()
 				delete(r.parsehub.runRegistry, r.token)
