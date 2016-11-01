@@ -31,13 +31,8 @@ type TestRunHandler struct {
 }
 
 func (h *TestRunHandler) Handle(run *parsehub_go.Run) error {
-	val := struct {
-		Matches []struct {
-			Id      string
-			hltvUrl string
-		}
-	}{}
-	run.LoadData(val)
+	val := map[string]interface{}{}
+	run.LoadData(&val)
 
 	fmt.Println("result", val)
 	return nil

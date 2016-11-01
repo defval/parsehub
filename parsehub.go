@@ -21,7 +21,7 @@ type ParseHub struct {
 }
 
 func NewParseHub(apiKey string) *ParseHub {
-	internal.Logf("ParseHub: Created new parsehub client with api key: %v", apiKey)
+	internal.Logf("ParseHub: Create new parsehub client with api key: %v", apiKey)
 	parsehub := &ParseHub{
 		apiKey: apiKey,
 		projectRegistry: map[string]*Project{},
@@ -112,6 +112,10 @@ func (parsehub *ParseHub) GetProject(projectToken string) *Project {
 	return project
 }
 
+// This returns the run object for a given run token. You can call this method repeatedly to poll for when 
+// a run is done, though we recommend using a webhook instead. This method is rate-limited. 
+// For each run, you may make at most 25 calls during the first 5 minutes after the run started, 
+// and at most one call every 3 minutes after that.
 func (parsehub *ParseHub) GetRun(runToken string) *Run {
 	internal.Logf("ParseHub: Get run %s", runToken)
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + runToken)
@@ -149,8 +153,6 @@ func (parsehub *ParseHub) GetRun(runToken string) *Run {
 
 	run.token = runToken
 	run.response = runResponse
-
-	internal.Logf("ParseHub: Get run data: %+v", run.response)
 
 	return run
 }

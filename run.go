@@ -24,7 +24,7 @@ func (r *Run) GetResponse() *RunResponse {
 }
 
 // This returns the data that was extracted by a run.
-func (r *Run) LoadData(target interface{}) {
+func (r *Run) LoadData(target interface{}) error {
 	internal.Logf("Run: Load data for run %v", r.token)
 
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token + "/data")
@@ -35,7 +35,7 @@ func (r *Run) LoadData(target interface{}) {
 	requestUrl.RawQuery = values.Encode()
 
 	if resp, err := http.Get(requestUrl.String()); err != nil {
-		panic(err)
+		return err
 	} else {
 		defer resp.Body.Close()
 
@@ -45,6 +45,8 @@ func (r *Run) LoadData(target interface{}) {
 		json.Unmarshal(body, target)
 
 		internal.Logf("Run: Load data unmarshaled: %v", target)
+
+		return nil
 	}
 }
 
@@ -80,14 +82,16 @@ func (r *Run) Cancel() *Run {
 
 // Watch run
 func (r *Run) Watch() {
+	internal.Logf("Run: Start watching run %s", r.token)
 	for {
+		time.Sleep(10 * time.Second) // todo: delete hardcoded time
+
 		internal.Logf("Run: Watch iteration for run %s", r.token)
-		time.Sleep(3 * time.Second) // todo: delete hardcoded time
 		r.parsehub.GetRun(r.token)
-		internal.Logf("Run: Run response in watch %+v", r.response)
-		if r.response.Status == "complete" {
+
+		if r.response.DataReady > 0 {
+			internal.Logf("Run: Watch closed. Handle run %s", r.token)
 			r.handler.Handle(r)
-			internal.Logf("Run: Watch closed for run %s", r.token)
 			return
 		}
 	}
