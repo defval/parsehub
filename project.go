@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"parsehub-go/internal"
+	"gopkg.in/mb24dev/parsehub-go.v1/internal"
 )
 
 // Project run params

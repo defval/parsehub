@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"io/ioutil"
-	"parsehub-go/internal"
 	"time"
+	"gopkg.in/mb24dev/parsehub-go.v1/internal"
 )
 
 type HandleRunFunc func(run *Run) error

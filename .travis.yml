@@ -1,0 +1,12 @@
+sudo: false
+language: go
+
+go:
+  - 1.4
+  - 1.6
+  - 1.7
+
+install:
+  - mkdir -p $HOME/gopath/src/gopkg.in/mb24dev
+  - mv `pwd` $HOME/gopath/src/gopkg.in/mb24dev/parsehub-go.v1
+  

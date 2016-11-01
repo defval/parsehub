@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"parsehub-go/internal"
+	"gopkg.in/mb24dev/parsehub-go.v1/internal"
 )
 
 const (
@@ -33,7 +33,7 @@ func NewParseHub(apiKey string) *ParseHub {
 }
 
 // This will return all of the projects in your account
-func (parsehub *ParseHub) GetAllProjects() ([]*ProjectResponse, error) {
+func (parsehub *ParseHub) GetAllProjects() ([]*Project, error) {
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects")
 
 	values := url.Values{}
@@ -50,15 +50,24 @@ func (parsehub *ParseHub) GetAllProjects() ([]*ProjectResponse, error) {
 		body, _ := ioutil.ReadAll(resp.Body)
 		debugf("ParseHub.GetAllProjects: Response string: %s", body)
 
-		projects := &ProjectsResponse{}
-		if err := json.Unmarshal(body, projects); err != nil {
+		projectsResponse := &ProjectsResponse{}
+		if err := json.Unmarshal(body, projectsResponse); err != nil {
 			warningf("ParseHub.GetAllProjects: Unmarshal error with body %s", body)
 			return nil, err
 		}
 
+		projects := []*Project{}
+		var p *Project
+
+		for _, projectResponse := range projectsResponse.Projects {
+			p = NewProject(parsehub, projectResponse.Token)
+			p.response = projectResponse
+			projects = append(projects, p)
+		}
+
 		debugf("ParseHub.GetAllProjects: Get all projects response: %v", projects)
 
-		return projects.Projects, nil
+		return projects, nil
 	} else {
 		warningf("ParseHub.GetAllProjects: ParseHub HTTP response problem: %s", err.Error())
 		return nil, err
