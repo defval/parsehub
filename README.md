@@ -1,21 +1,21 @@
-# ParseHub client [![Build Status](https://travis-ci.org/mb24dev/parsehub-go.png?branch=master)](https://travis-ci.org/mb24dev/redis)
+# ParseHub client [![Build Status](https://travis-ci.org/mb24dev/parsehub.png?branch=master)](https://travis-ci.org/mb24dev/parsehub)
 
-API docs: https://godoc.org/gopkg.in/mb24dev/parsehub-go.v1.
+API docs: https://godoc.org/gopkg.in/mb24dev/parsehub.v1.
 
-Examples: https://godoc.org/gopkg.in/mb24dev/parsehub-go.v1#pkg-examples.
+Examples: https://godoc.org/gopkg.in/mb24dev/parsehub.v1#pkg-examples.
 
 ## Installation
 
 Install:
 
 ```shell
-go get gopkg.in/mb24dev/parsehub-go.v1
+go get gopkg.in/mb24dev/parsehub.v1
 ```
 
 Import:
 
 ```go
-import "gopkg.in/mb24dev/parsehub-go.v1"
+import "gopkg.in/mb24dev/parsehub.v1"
 ```
 
 ## Vendoring
@@ -25,11 +25,11 @@ e.g. [glide](https://github.com/Masterminds/glide), you can import this
 package via its GitHub URL:
 
 ```yaml
-- package: github.com/mb24dev/parsehub-go
+- package: github.com/mb24dev/parsehub
   version: ^1.0.0
 ```
 
-WARNING: please note that by importing `github.com/mb24dev/parsehub-go`
+WARNING: please note that by importing `github.com/mb24dev/parsehub`
 directly (without semantic versioning constrol) you are in danger of
 running in the breaking API changes. Use carefully and at your own
 risk!

@@ -1,11 +1,11 @@
-package parsehub_go
+package parsehub
 
 import (
 	"net/url"
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"gopkg.in/mb24dev/parsehub-go.v1/internal"
+	"gopkg.in/mb24dev/parsehub.v1/internal"
 )
 
 // Project run params

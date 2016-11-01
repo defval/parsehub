@@ -1,4 +1,4 @@
-package parsehub_go
+package parsehub
 
 import (
 	"log"
@@ -14,15 +14,15 @@ func ExampleSetLogger() {
 }
 
 func ExampleProject_Run() {
-	parsehub := NewParseHub(ApiKey)
+	parsehub := NewParseHub("__API_KEY__")
 
-	if project, err := parsehub.GetProject(ProjectToken); err != nil {
+	if project, err := parsehub.GetProject("__PROJECT_TOKEN__"); err != nil {
 		// handle error
 	} else {
 		// async run
 		project.Run(ProjectRunParams{
-			StartTemplate: StartTemplate,
-			StartUrl: StartUrl,
+			StartTemplate: "__START_TEMPLATE__",
+			StartUrl: "__START_URL__",
 		}, func(run *Run) error {
 			val := map[string]interface{}{}
 
@@ -44,9 +44,9 @@ func ExampleProject_Run() {
 }
 
 func ExampleParseHub_GetProject() {
-	parsehub := NewParseHub(ApiKey)
+	parsehub := NewParseHub("__API_KEY__")
 
-	if project, err := parsehub.GetProject(ProjectToken); err != nil {
+	if project, err := parsehub.GetProject("__PROJECT_TOKEN__"); err != nil {
 		// handle error
 	} else {
 		fmt.Printf("%+v", project)
@@ -54,7 +54,7 @@ func ExampleParseHub_GetProject() {
 }
 
 func ExampleParseHub_GetAllProjects() {
-	parsehub := NewParseHub(ApiKey)
+	parsehub := NewParseHub("__API_KEY__")
 
 	if projects, err := parsehub.GetAllProjects(); err != nil {
 		// handle error
@@ -66,9 +66,9 @@ func ExampleParseHub_GetAllProjects() {
 }
 
 func ExampleParseHub_GetRun() {
-	parsehub := NewParseHub(ApiKey)
+	parsehub := NewParseHub("__API_KEY__")
 
-	if run, err := parsehub.GetRun(RunToken); err != nil {
+	if run, err := parsehub.GetRun("__RUN_TOKEN__"); err != nil {
 		// handle error
 	} else {
 		fmt.Printf("%+v", run)

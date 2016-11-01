@@ -1,4 +1,4 @@
-package parsehub_go
+package parsehub
 
 import (
 	"fmt"

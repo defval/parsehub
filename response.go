@@ -1,4 +1,4 @@
-package parsehub_go
+package parsehub
 
 // ParseHub Projects
 type ProjectsResponse struct {
