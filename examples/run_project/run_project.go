@@ -35,5 +35,9 @@ func (h *TestRunHandler) Handle(run *parsehub_go.Run) error {
 	run.LoadData(&val)
 
 	fmt.Println("result", val)
+
+	run.Delete()
+
+	fmt.Println("run", run.GetResponse())
 	return nil
 }

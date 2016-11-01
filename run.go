@@ -53,11 +53,12 @@ func (r *Run) LoadData(target interface{}) error {
 // This cancels a run and changes its status to cancelled. 
 // Any data that was extracted so far will be available.
 func (r *Run) Cancel() *Run {
-	internal.Logf("Cancel run %v", r.token)
+	internal.Logf("Run: Cancel run %v", r.token)
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token + "/cancel")
 
 	values := url.Values{}
 	values.Add("api_key", r.parsehub.apiKey)
+	requestUrl.RawQuery = values.Encode()
 
 	if resp, err := http.PostForm(requestUrl.String(), values); err != nil {
 		panic(err)
@@ -65,18 +66,44 @@ func (r *Run) Cancel() *Run {
 		defer resp.Body.Close()
 
 		body, _ := ioutil.ReadAll(resp.Body)
+		internal.Logf("Run: Cancel run response string: %s", body)
+
 		runResponse := &RunResponse{}
-
-		internal.Logf("Run: Cancel run body string: %v", body)
-
 		json.Unmarshal(body, runResponse)
 
-		r.token = runResponse.RunToken
-		r.response = runResponse
+		internal.Logf("Run: Cancel run response: %+v", runResponse)
 
-		internal.Logf("Run: Cancel run data: %v", r)
+		r.response = runResponse // update response
 
 		return r
+	}
+}
+
+// This cancels a run if running, and deletes the run and its data.
+func (r *Run) Delete() {
+	internal.Logf("Run: Delete run %v", r.token)
+	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token)
+
+	values := url.Values{}
+	values.Add("api_key", r.parsehub.apiKey)
+	requestUrl.RawQuery = values.Encode()
+
+	request, _ := http.NewRequest(http.MethodDelete, requestUrl.String(), nil)
+
+	if resp, err := http.DefaultClient.Do(request); err != nil {
+		panic(err)
+	} else {
+		defer resp.Body.Close()
+
+		body, _ := ioutil.ReadAll(resp.Body)
+		internal.Logf("Run: Delete run response string: %s", body)
+
+		runResponse := &RunResponse{}
+
+		json.Unmarshal(body, runResponse)
+		internal.Logf("Run: Delete run response: %v", runResponse)
+
+		r.response = runResponse
 	}
 }
 
