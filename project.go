@@ -29,6 +29,14 @@ type Project struct {
 	response *ProjectResponse
 }
 
+// Creates new parsehub project wrapper
+func NewProject(parsehub *ParseHub, token string) *Project {
+	return &Project{
+		parsehub: parsehub,
+		token: token,
+	}
+}
+
 // Get project data
 func (p *Project) GetResponse() *ProjectResponse {
 	return p.response
@@ -96,17 +104,27 @@ func (p *Project) Run(params ProjectRunParams, runHandler RunHandler) *Run {
 			panic(err)
 		}
 
-		run := &Run{}
-		run.token = runResponse.RunToken
-		run.parsehub = p.parsehub
+		internal.Lock.RLock()
+		run := p.parsehub.runRegistry[runResponse.RunToken]
+		internal.Lock.RUnlock()
+
+		if run == nil {
+			run = NewRun(p.parsehub, runResponse.RunToken)
+			internal.Lock.Lock()
+			p.parsehub.runRegistry[runResponse.RunToken] = run
+			internal.Lock.Unlock()
+		}
+
 		run.response = runResponse
 
-		run.handler = runHandler
+		run.SetHandler(runHandler)
 
+		internal.Lock.Lock()
 		p.parsehub.runRegistry[run.token] = run
+		internal.Lock.Unlock()
 
-		internal.Logf("Project: Start watching run %s", run.token)
-		go run.Watch()
+		internal.Logf("Project: Start WatchAndHandle for run with token %s", run.token)
+		go run.WatchAndHandle()
 
 		return run
 	}

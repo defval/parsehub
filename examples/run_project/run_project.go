@@ -12,20 +12,41 @@ func main() {
 	logger := &log.Logger{}
 	logger.SetOutput(os.Stdout)
 	parsehub_go.SetLogger(logger)
+
 	parsehub := parsehub_go.NewParseHub(parsehub_go.ApiKey)
 
 	project := parsehub.GetProject(parsehub_go.ProjectToken)
 
-	run := project.Run(parsehub_go.ProjectRunParams{
+	// concurrent watches
+	project.Run(parsehub_go.ProjectRunParams{
 		StartTemplate: parsehub_go.StartTemplate,
 		StartUrl: parsehub_go.StartUrl,
 	}, &TestRunHandler{})
 
-	fmt.Println(run)
+	project.Run(parsehub_go.ProjectRunParams{
+		StartTemplate: parsehub_go.StartTemplate,
+		StartUrl: parsehub_go.StartUrl,
+	}, &TestRunHandler{})
 
-	time.Sleep(50 * time.Second)
+	project.Run(parsehub_go.ProjectRunParams{
+		StartTemplate: parsehub_go.StartTemplate,
+		StartUrl: parsehub_go.StartUrl,
+	}, &TestRunHandler{})
+
+	project.Run(parsehub_go.ProjectRunParams{
+		StartTemplate: parsehub_go.StartTemplate,
+		StartUrl: parsehub_go.StartUrl,
+	}, &TestRunHandler{})
+
+	project.Run(parsehub_go.ProjectRunParams{
+		StartTemplate: parsehub_go.StartTemplate,
+		StartUrl: parsehub_go.StartUrl,
+	}, &TestRunHandler{})
+
+	time.Sleep(100 * time.Second)
 }
 
+// This struct handle run completed run
 type TestRunHandler struct {
 
 }

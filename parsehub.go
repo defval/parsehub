@@ -13,6 +13,12 @@ const (
 	ParseHubBaseUrl = "https://www.parsehub.com/api/"
 )
 
+// Set Logger for package
+func SetLogger(logger *log.Logger) {
+	internal.Logger = logger
+}
+
+// ParseHub adapter
 type ParseHub struct {
 	apiKey          string
 	watchQueue      chan *Run
@@ -20,6 +26,7 @@ type ParseHub struct {
 	runRegistry     map[string]*Run
 }
 
+// Creates new ParseHub adapter with api key
 func NewParseHub(apiKey string) *ParseHub {
 	internal.Logf("ParseHub: Create new parsehub client with api key: %v", apiKey)
 	parsehub := &ParseHub{
@@ -29,11 +36,6 @@ func NewParseHub(apiKey string) *ParseHub {
 	}
 
 	return parsehub
-}
-
-// Set Logger
-func SetLogger(logger *log.Logger) {
-	internal.Logger = logger
 }
 
 // This will return all of the projects in your account
@@ -50,16 +52,16 @@ func (parsehub *ParseHub) GetAllProjects() []*ProjectResponse {
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
+	internal.Logf("ParseHub.GetAllProjects: Response string: %s", body)
+
 	projects := &ProjectsResponse{}
 	json.Unmarshal(body, projects)
-
-	internal.Logf("ParseHub: Get all projects body: %v", string(body))
-	internal.Logf("ParseHub: Get all projects response: %v", projects)
+	internal.Logf("ParseHub.GetAllProjects: Get all projects response: %v", projects)
 
 	return projects.Projects
 }
 
-// This will return the project object for a specific project.
+// This will return the project object wrapper for a specific project.
 // 
 // Params:
 //
@@ -79,7 +81,7 @@ func (parsehub *ParseHub) GetAllProjects() []*ProjectResponse {
 // If set to anything other than 0, send an email when the run either completes successfully 
 // or fails due to an error. Defaults to 0.
 func (parsehub *ParseHub) GetProject(projectToken string) *Project {
-	internal.Logf("ParseHub: Get project %s", projectToken)
+	internal.Logf("ParseHub.GetProject: Get project with token: %s", projectToken)
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects/" + projectToken)
 
 	values := url.Values{}
@@ -87,37 +89,39 @@ func (parsehub *ParseHub) GetProject(projectToken string) *Project {
 
 	requestUrl.RawQuery = values.Encode()
 
-	resp, _ := http.Get(requestUrl.String())
+	if resp, err := http.Get(requestUrl.String()); err != nil {
+		panic(err)
+	} else {
+		defer resp.Body.Close()
 
-	defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+		projectResponse := &ProjectResponse{}
+		json.Unmarshal(body, projectResponse)
 
-	body, _ := ioutil.ReadAll(resp.Body)
-	projectResponse := &ProjectResponse{}
-	json.Unmarshal(body, projectResponse)
+		internal.Lock.RLock()
+		project := parsehub.projectRegistry[projectToken]
+		internal.Lock.RUnlock()
 
-	project := parsehub.projectRegistry[projectToken]
+		internal.Logf("ParseHub.GetProject: Loaded project with token %s from registry: %+v", projectToken, project)
 
-	internal.Logf("ParseHub: Loaded project from registry: %+v", project)
+		if project == nil {
+			internal.Logf("ParseHub.GetProject: Need to put new project with token %s into registry", projectToken)
+			project = NewProject(parsehub, projectToken)
 
-	if project == nil {
-		internal.Logf("ParseHub: Need to put project %s into registry", projectToken)
-		project = &Project{}
-		project.token = projectToken
-		project.parsehub = parsehub
-		parsehub.projectRegistry[projectToken] = project
+			internal.Lock.RLock()
+			parsehub.projectRegistry[projectToken] = project
+			internal.Lock.RUnlock()
+		}
+
+		project.response = projectResponse
+
+		return project
 	}
-
-	project.response = projectResponse
-
-	return project
 }
 
-// This returns the run object for a given run token. You can call this method repeatedly to poll for when 
-// a run is done, though we recommend using a webhook instead. This method is rate-limited. 
-// For each run, you may make at most 25 calls during the first 5 minutes after the run started, 
-// and at most one call every 3 minutes after that.
+// This returns the run object wrapper for a given run token.
 func (parsehub *ParseHub) GetRun(runToken string) *Run {
-	internal.Logf("ParseHub: Get run %s", runToken)
+	internal.Logf("ParseHub.GetRun: Get run with token %s", runToken)
 	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + runToken)
 
 	values := url.Values{}
@@ -125,34 +129,38 @@ func (parsehub *ParseHub) GetRun(runToken string) *Run {
 
 	requestUrl.RawQuery = values.Encode()
 
-	resp, _ := http.Get(requestUrl.String())
+	if resp, err := http.Get(requestUrl.String()); err != nil {
+		panic(err) // todo: remove panic
+	} else {
+		defer resp.Body.Close()
 
-	defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
 
-	body, _ := ioutil.ReadAll(resp.Body)
+		internal.Logf("ParseHub.GetRun: Response string for run %s: %s", runToken, body)
 
-	internal.Logf("ParseHub: Body data for run %s: %s", runToken, body)
+		runResponse := &RunResponse{}
+		err := json.Unmarshal(body, runResponse)
 
-	runResponse := &RunResponse{}
-	err := json.Unmarshal(body, runResponse)
+		if err != nil {
+			internal.Logf("ParseHub.GetRun: Problem with unmarshal json string: %s", body)
+			panic(err) // todo: remove panic
+		}
 
-	if err != nil {
-		panic(err)
+		internal.Logf("ParseHub.GetRun: Run response: %+v", runResponse)
+
+		internal.Lock.RLock()
+		run := parsehub.runRegistry[runToken]
+		internal.Lock.RUnlock()
+
+		if run == nil {
+			run = NewRun(parsehub, runToken)
+			internal.Lock.Lock()
+			parsehub.runRegistry[runToken] = run
+			internal.Lock.Unlock()
+		}
+
+		run.response = runResponse // update response
+
+		return run
 	}
-
-	internal.Logf("ParseHub: Run response: %+v", runResponse)
-
-	run := parsehub.runRegistry[runToken]
-
-	if run == nil {
-		run := &Run{}
-		run.token = runToken
-		run.parsehub = parsehub
-		parsehub.runRegistry[runToken] = run
-	}
-
-	run.token = runToken
-	run.response = runResponse
-
-	return run
 }
