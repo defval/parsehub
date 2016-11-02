@@ -24,10 +24,16 @@ type Run struct {
 
 // Creates new ParseHub run wrapper
 func NewRun(parsehub *ParseHub, token string) *Run {
-	return &Run{
-		parsehub: parsehub,
-		token: token,
+	run := parsehub.runRegistry[token]
+
+	if run == nil {
+		run = &Run{
+			parsehub: parsehub,
+			token: token,
+		}
 	}
+
+	return run
 }
 
 // Set run handler

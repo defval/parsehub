@@ -189,3 +189,17 @@ func (parsehub *ParseHub) GetRun(runToken string) (*Run, error) {
 		return nil, err
 	}
 }
+
+// Loads run from string
+// Example from webhook post body
+func (parsehub *ParseHub) LoadRunFromBytes(body []byte) (*Run, error) {
+	runResponse := &RunResponse{}
+
+	if err := json.Unmarshal(body, runResponse); err != nil {
+		warningf("NewRunFromString: Problem with unmarshal json string: %s", body)
+		return nil, err
+	}
+
+	run := NewRun(parsehub, runResponse.RunToken)
+	return run, nil
+}
