@@ -27,7 +27,7 @@ type Project struct {
 // Creates new parsehub project wrapper
 func NewProject(parsehub *ParseHub, token string) *Project {
 	project := parsehub.projectRegistry[token]
-	
+
 	if project == nil {
 		project = &Project{
 			parsehub: parsehub,
@@ -41,6 +41,12 @@ func NewProject(parsehub *ParseHub, token string) *Project {
 // Get project data
 func (p *Project) GetResponse() *ProjectResponse {
 	return p.response
+}
+
+// Refresh project data
+func (p *Project) Refresh() error {
+	_, err := p.parsehub.GetProject(p.token)
+	return err
 }
 
 // This will start running an instance of the project on the ParseHub cloud. It will create a new run object. 
