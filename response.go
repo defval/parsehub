@@ -60,7 +60,7 @@ type RunResponse struct {
 	EndTime       string `json:"end_time"`
 
 	// The number of pages that have been traversed by this run so far.
-	Pages         interface{} `json:"pages"` // todo: fix parsehub format
+	Pages         int64 `json:"pages"`
 
 	// The md5sum of the results. This can be used to check if any results data has changed between two runs.
 	Md5sum        string `json:"md5sum"`
