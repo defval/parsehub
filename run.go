@@ -1,25 +1,25 @@
 package parsehub
 
 import (
-	"net/url"
 	"encoding/json"
-	"net/http"
+	"github.com/defval/parsehub/internal"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"time"
-	"gopkg.in/mb24dev/parsehub.v1/internal"
 )
 
 type HandleRunFunc func(run *Run) error
 
 // ParseHub Run Wrapper
 type Run struct {
-	parsehub   *ParseHub
+	parsehub *ParseHub
 
 	token      string
 	response   *RunResponse
 	handleFunc HandleRunFunc
 
-	watching   bool
+	watching bool
 }
 
 // Creates new ParseHub run wrapper
@@ -29,7 +29,7 @@ func NewRun(parsehub *ParseHub, token string) *Run {
 	if run == nil {
 		run = &Run{
 			parsehub: parsehub,
-			token: token,
+			token:    token,
 		}
 	}
 
@@ -50,7 +50,7 @@ func (r *Run) GetResponse() *RunResponse {
 func (r *Run) LoadData(target interface{}) error {
 	debugf("Run.LoadData: Load data for run %v", r.token)
 
-	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token + "/data")
+	requestUrl, _ := url.Parse(BaseUrl + "v2/runs/" + r.token + "/data")
 
 	values := url.Values{}
 	values.Add("api_key", r.parsehub.apiKey)
@@ -79,11 +79,11 @@ func (r *Run) LoadData(target interface{}) error {
 	}
 }
 
-// This cancels a run and changes its status to cancelled. 
+// This cancels a run and changes its status to cancelled.
 // Any data that was extracted so far will be available.
 func (r *Run) Cancel() error {
 	debugf("Run.Cancel: Cancel run %v", r.token)
-	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token + "/cancel")
+	requestUrl, _ := url.Parse(BaseUrl + "v2/runs/" + r.token + "/cancel")
 
 	values := url.Values{}
 	values.Add("api_key", r.parsehub.apiKey)
@@ -125,7 +125,7 @@ func (r *Run) Refresh() error {
 // This cancels a run if running, and deletes the run and its data.
 func (r *Run) Delete() error {
 	debugf("Run.Delete: Delete run %v", r.token)
-	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + r.token)
+	requestUrl, _ := url.Parse(BaseUrl + "v2/runs/" + r.token)
 
 	values := url.Values{}
 	values.Add("api_key", r.parsehub.apiKey)

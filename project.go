@@ -1,11 +1,11 @@
 package parsehub
 
 import (
-	"net/url"
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
-	"gopkg.in/mb24dev/parsehub.v1/internal"
+	"github.com/defval/parsehub/internal"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 )
 
 // Project run params
@@ -31,7 +31,7 @@ func NewProject(parsehub *ParseHub, token string) *Project {
 	if project == nil {
 		project = &Project{
 			parsehub: parsehub,
-			token: token,
+			token:    token,
 		}
 	}
 
@@ -49,25 +49,25 @@ func (p *Project) Refresh() error {
 	return err
 }
 
-// This will start running an instance of the project on the ParseHub cloud. It will create a new run object. 
-// This method will return immediately, while the run continues in the background. 
-// You can use webhooks or polling to figure out when the data for this 
+// This will start running an instance of the project on the ParseHub cloud. It will create a new run object.
+// This method will return immediately, while the run continues in the background.
+// You can use webhooks or polling to figure out when the data for this
 // run is ready in order to retrieve it.
-// 
+//
 // Params:
-// start_url (Optional)	
+// start_url (Optional)
 // The url to start running on. Defaults to the project’s start_site.
 //
-// start_template (Optional)	
+// start_template (Optional)
 // The template to start running with. Defaults to the projects’s start_template (inside the options_json).
 //
-// start_value_override (Optional)	
-// The starting global scope for this run. This can be used to pass parameters to your run. 
-// For example, you can pass {"query": "San Francisco"} to use the query somewhere in 
+// start_value_override (Optional)
+// The starting global scope for this run. This can be used to pass parameters to your run.
+// For example, you can pass {"query": "San Francisco"} to use the query somewhere in
 // your run. Defaults to the project’s start_value.
 //
-// send_email (Optional)	
-// If set to anything other than 0, send an email when the run either completes successfully or 
+// send_email (Optional)
+// If set to anything other than 0, send an email when the run either completes successfully or
 // fails due to an error. Defaults to 0.
 func (p *Project) Run(params ProjectRunParams, handleFunc HandleRunFunc) (*Run, error) {
 	debugf(
@@ -76,7 +76,7 @@ func (p *Project) Run(params ProjectRunParams, handleFunc HandleRunFunc) (*Run, 
 		params,
 	)
 
-	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects/" + p.token + "/run")
+	requestUrl, _ := url.Parse(BaseUrl + "v2/projects/" + p.token + "/run")
 
 	values := url.Values{}
 	values.Add("api_key", p.parsehub.apiKey)
@@ -146,11 +146,11 @@ func (p *Project) Run(params ProjectRunParams, handleFunc HandleRunFunc) (*Run, 
 	}
 }
 
-// This returns the data for the most recent ready run for a project. 
+// This returns the data for the most recent ready run for a project.
 // You can use this method in order to have a synchronous interface to your project.
 func (p *Project) LoadLastReadyData(target interface{}) error {
 	debugf("Project.LoadLastReadyData: Load: %s", p.token)
-	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects/" + p.token + "/last_ready_run/data")
+	requestUrl, _ := url.Parse(BaseUrl + "v2/projects/" + p.token + "/last_ready_run/data")
 
 	values := url.Values{}
 	values.Add("api_key", p.parsehub.apiKey)
@@ -174,4 +174,3 @@ func (p *Project) LoadLastReadyData(target interface{}) error {
 		return err
 	}
 }
-

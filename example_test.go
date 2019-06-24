@@ -1,9 +1,9 @@
 package parsehub
 
 import (
+	"fmt"
 	"log"
 	"os"
-	"fmt"
 )
 
 // Set parsehub library logger
@@ -41,7 +41,7 @@ func ExampleProject_Run() {
 		// async run
 		project.Run(ProjectRunParams{
 			StartTemplate: "__START_TEMPLATE__",
-			StartUrl: "__START_URL__",
+			StartUrl:      "__START_URL__",
 		}, handleFunc) // or nil if you use webhooks
 	}
 
@@ -81,7 +81,7 @@ func ExampleRun_LoadData() {
 		// handle error
 	} else {
 		v := map[string]interface{}{} // example struct
-		run.LoadData(v) // load data
+		run.LoadData(v)               // load data
 		fmt.Printf("%+v", v)
 	}
 }

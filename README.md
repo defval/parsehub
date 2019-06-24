@@ -1,38 +1,22 @@
 # ParseHub client [![Build Status](https://api.travis-ci.org/mb24dev/parsehub.svg?branch=master)](https://travis-ci.org/mb24dev/parsehub)
 
-API docs: https://godoc.org/gopkg.in/mb24dev/parsehub.v1.
+API docs: https://godoc.org/github.com/defval/parsehub.
 
-Examples: https://godoc.org/gopkg.in/mb24dev/parsehub.v1#pkg-examples.
+Examples: https://godoc.org/github.com/defval/parsehub#pkg-examples.
 
 ## Installation
 
 Install:
 
 ```shell
-go get gopkg.in/mb24dev/parsehub.v1
+go get github.com/defval/parsehub
 ```
 
 Import:
 
 ```go
-import "gopkg.in/mb24dev/parsehub.v1"
+import "github.com/defval/parsehub"
 ```
-
-## Vendoring
-
-If you are using a vendoring tool with support for semantic versioning
-e.g. [glide](https://github.com/Masterminds/glide), you can import this
-package via its GitHub URL:
-
-```yaml
-- package: github.com/mb24dev/parsehub
-  version: ^1.0.0
-```
-
-WARNING: please note that by importing `github.com/mb24dev/parsehub`
-directly (without semantic versioning constrol) you are in danger of
-running in the breaking API changes. Use carefully and at your own
-risk!
 
 ## Quickstart
 

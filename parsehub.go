@@ -1,15 +1,16 @@
 package parsehub
 
 import (
-	"net/url"
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
-	"gopkg.in/mb24dev/parsehub.v1/internal"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+
+	"github.com/defval/parsehub/internal"
 )
 
 const (
-	ParseHubBaseUrl = "https://www.parsehub.com/api/"
+	BaseUrl = "https://www.parsehub.com/api/"
 )
 
 // ParseHub adapter
@@ -24,9 +25,9 @@ type ParseHub struct {
 func NewParseHub(apiKey string) *ParseHub {
 	debugf("ParseHub: Create new parsehub client with api key: %v", apiKey)
 	parsehub := &ParseHub{
-		apiKey: apiKey,
+		apiKey:          apiKey,
 		projectRegistry: map[string]*Project{},
-		runRegistry: map[string]*Run{},
+		runRegistry:     map[string]*Run{},
 	}
 
 	return parsehub
@@ -34,7 +35,7 @@ func NewParseHub(apiKey string) *ParseHub {
 
 // This will return all of the projects in your account
 func (parsehub *ParseHub) GetAllProjects() ([]*Project, error) {
-	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects")
+	requestUrl, _ := url.Parse(BaseUrl + "v2/projects")
 
 	values := url.Values{}
 	values.Add("api_key", parsehub.apiKey)
@@ -76,27 +77,27 @@ func (parsehub *ParseHub) GetAllProjects() ([]*Project, error) {
 }
 
 // This will return the project object wrapper for a specific project.
-// 
+//
 // Params:
 //
-// start_url (Optional)	
+// start_url (Optional)
 // The url to start running on. Defaults to the project’s start_site.
 //
-// start_template (Optional)	
+// start_template (Optional)
 // The template to start running with.
 // Defaults to the projects’s start_template (inside the options_json).
 //
-// start_value_override (Optional)	
-// The starting global scope for this run. This can be used to pass parameters to your run. 
-// For example, you can pass {"query": "San Francisco"} to use the query somewhere in your run. 
+// start_value_override (Optional)
+// The starting global scope for this run. This can be used to pass parameters to your run.
+// For example, you can pass {"query": "San Francisco"} to use the query somewhere in your run.
 // Defaults to the project’s start_value.
 //
-// send_email (Optional)	
-// If set to anything other than 0, send an email when the run either completes successfully 
+// send_email (Optional)
+// If set to anything other than 0, send an email when the run either completes successfully
 // or fails due to an error. Defaults to 0.
 func (parsehub *ParseHub) GetProject(projectToken string) (*Project, error) {
 	debugf("ParseHub.GetProject: Get project with token: %s", projectToken)
-	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/projects/" + projectToken)
+	requestUrl, _ := url.Parse(BaseUrl + "v2/projects/" + projectToken)
 
 	values := url.Values{}
 	values.Add("api_key", parsehub.apiKey)
@@ -145,7 +146,7 @@ func (parsehub *ParseHub) GetProject(projectToken string) (*Project, error) {
 // This returns the run object wrapper for a given run token.
 func (parsehub *ParseHub) GetRun(runToken string) (*Run, error) {
 	debugf("ParseHub.GetRun: Get run with token %s", runToken)
-	requestUrl, _ := url.Parse(ParseHubBaseUrl + "v2/runs/" + runToken)
+	requestUrl, _ := url.Parse(BaseUrl + "v2/runs/" + runToken)
 
 	values := url.Values{}
 	values.Add("api_key", parsehub.apiKey)

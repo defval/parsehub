@@ -1,10 +1,20 @@
+go_import_path: github.com/defval/inject
 language: go
+sudo: false
 
-go:
-  - 1.6
-  - 1.7
+matrix:
+  include:
+    - go: "1.11.x"
+    - go: "1.12.x"
+  fast_finish: true
 
-install:
-  - mkdir -p $HOME/gopath/src/gopkg.in/mb24dev
-  - mv `pwd` $HOME/gopath/src/gopkg.in/mb24dev/parsehub.v1
+env:
+  global:
+    - GO111MODULE=on
+
+script:
+  - make test
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 
